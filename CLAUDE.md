@@ -141,3 +141,105 @@ When a donor submits the embedded form:
 - mark status
 
 ### Flow (ASCII)
+
+
+### Scaling tip
+Use **Split in Batches** so you don’t hit rate limits sending lots of messages.
+
+---
+
+## Workflow 3: Payment confirmation
+
+### Goal
+When finance confirms payment (via form, admin panel, or updating a sheet):
+- verify record
+- send confirmation receipt message
+- mark confirmed
+
+### Good triggers
+- **Webhook** (finance submits a “payment confirmation” form)
+- **Google Sheets Trigger** (row updated to `PAID`)
+- **Manual trigger** (small churches sometimes start here)
+
+### Flow (ASCII)
+
+
+
+---
+
+## Reliability checklist (avoid common headaches)
+
+### Deduplication
+Always store and check:
+- `welcome_sent_at`
+- `reminder_sent_at`
+- `confirmed_sent_at`
+
+Never “just send.” Always check first.
+
+### Timezones
+Set n8n timezone to match your church location.
+When comparing dates, compare **date-only** (not full timestamp) if your rule is “3 days before”.
+
+### Rate limits
+If sending many messages:
+- Split in Batches (e.g., 25 at a time)
+- Add small Wait between batches (2–5 seconds)
+
+### Error handling
+Use:
+- “Continue On Fail” where safe
+- Separate error branch that notifies an admin (Email/Telegram)
+
+### Logging
+Write a log entry for each send:
+- who
+- what message type
+- timestamp
+- result (success/fail)
+- error text
+
+---
+
+## Message templates (copy/paste)
+
+### Welcome
+Hello {{name}},
+Thank you for sponsoring {{sponsorship_type}}.
+Expected donation: {{expected_amount}} on {{expected_date}}.
+God bless you.
+
+### Reminder
+Hello {{name}},
+A gentle reminder: your sponsorship donation of {{expected_amount}} is due on {{expected_date}}.
+Thank you for your support. God bless you.
+
+### Confirmation
+Hello {{name}},
+We confirm receipt of your donation of {{paid_amount}} on {{paid_date}} for {{sponsorship_type}}.
+Thank you. God bless you.
+
+---
+
+## Security basics
+- Don’t expose admin webhooks publicly without a secret token.
+- Use environment variables for API keys (don’t paste keys into nodes).
+- Limit who can edit workflows in n8n.
+- Back up your n8n data regularly.
+
+---
+
+## Quick start: recommended stack
+- n8n (self-hosted or cloud)
+- Google Sheets (start simple)
+- Email via SMTP/Gmail
+- Optional: WhatsApp via an approved provider later
+
+---
+
+## Done definition (your automation is “complete” when)
+- New donor submissions always create a record
+- Welcome message sends once only
+- Reminders send on correct days, no duplicates
+- Payment confirmation sends only after payment is marked
+- Errors alert an admin and are visible in logs
