@@ -1,178 +1,143 @@
-# CLAUDE.md — AI Assistant Guide
+# n8n Skills Guide (skills.md)
 
-This file provides context, conventions, and instructions for AI assistants (Claude and others) working in this repository.
-
----
-
-## Repository Overview
-
-**Repository:** `AyoolaDare/automation-`
-**Current state:** Freshly initialized — no source files have been committed yet.
-**Working branch convention:** `claude/<task-slug>-<session-id>`
-
-This is an automation-focused repository. As code is added, update this file to reflect the actual project structure, stack, and conventions.
+A practical, copy-paste-friendly guide for building reliable automations in **n8n**.
 
 ---
 
-## Branch & Git Conventions
-
-- **Feature branches:** `claude/<task-slug>-<session-id>` (AI-generated) or `feat/<short-description>` (human-authored)
-- **Bug fix branches:** `fix/<short-description>`
-- **Always develop** on the designated branch — never commit directly to `main` or `master`
-- **Commit messages** should follow [Conventional Commits](https://www.conventionalcommits.org/):
-  - `feat: add user authentication module`
-  - `fix: correct off-by-one error in pagination`
-  - `chore: update dependencies`
-  - `docs: update CLAUDE.md with project structure`
-- **Push** with `-u origin <branch>` to set upstream tracking:
-  ```bash
-  git push -u origin <branch-name>
-  ```
-- Retry failed pushes (network errors only) with exponential backoff: 2s → 4s → 8s → 16s
+## What is n8n (in one line)
+n8n is like a visual “if this happens, do that” builder where you connect apps (Google, email, databases, WhatsApp providers, etc.) into workflows.
 
 ---
 
-## Development Workflow
+## Core concepts you must know
 
-Because the repository is currently empty, the following steps apply when initializing the project:
+### 1) Workflow
+A workflow is the whole automation, from trigger to final action.
 
-1. **Define the stack** — choose language, framework, and tooling before writing code.
-2. **Add dependency manifest** — `package.json`, `requirements.txt`, `go.mod`, etc.
-3. **Add `.gitignore`** appropriate for the chosen stack.
-4. **Add configuration files** — linter, formatter, TypeScript config, etc.
-5. **Create `src/` (or equivalent) directory** for source code.
-6. **Set up tests** — add a test runner and at minimum one smoke test before merging.
-7. **Update this file** (`CLAUDE.md`) with the real structure, commands, and conventions.
+### 2) Trigger node
+The “start button.” Examples:
+- **Webhook Trigger** (best for forms and custom apps)
+- **Cron** (runs on a schedule)
+- **Google Sheets Trigger** (changes in a sheet)
+- **Gmail Trigger** (new email)
 
----
+### 3) Nodes
+Each step is a node: read data, transform, branch, send message, write to a sheet, etc.
 
-## Common Commands
+### 4) Items
+n8n processes data as **items** (like rows). Each node usually receives items and outputs items.
 
-> Replace the placeholder commands below once the actual stack is chosen.
-
-```bash
-# Install dependencies
-npm install          # Node.js / JavaScript / TypeScript
-pip install -r requirements.txt  # Python
-go mod download      # Go
-
-# Run the project in development mode
-npm run dev
-
-# Run tests
-npm test
-pytest
-go test ./...
-
-# Lint
-npm run lint
-flake8 .
-golangci-lint run
-
-# Format code
-npm run format
-black .
-gofmt -w .
-
-# Build / compile
-npm run build
-go build ./...
-
-# Type-check (TypeScript)
-npx tsc --noEmit
-```
+### 5) Expressions
+You can pull data from previous nodes using expressions like:
+- `{{$json.name}}`
+- `{{$json.email}}`
 
 ---
 
-## File & Directory Structure
+## Recommended workflow design patterns
 
-The structure will evolve as code is added. A typical layout:
+### Pattern A: Webhook intake → Validate → Store → Respond
+Use this when data comes from a form or website.
 
-```
-automation-/
-├── .github/
-│   └── workflows/      # CI/CD pipeline definitions
-├── src/                # Primary source code
-├── tests/              # Test suites
-├── scripts/            # Utility / automation scripts
-├── docs/               # Additional documentation
-├── .gitignore
-├── CLAUDE.md           # This file
-└── README.md           # Human-facing project overview
-```
+**Best nodes:**
+- Webhook
+- Set / Function / Code
+- IF
+- Google Sheets / Database
+- Email / SMS / WhatsApp provider
 
-Update this section to reflect the actual layout once the project structure is established.
+### Pattern B: Daily scheduler → Query due reminders → Send → Mark as sent
+Use for reminders and timed follow-ups.
 
----
+**Best nodes:**
+- Cron
+- Google Sheets (Read) / DB query
+- IF / Filter
+- Send message
+- Update row/status
 
-## AI Assistant Instructions
+### Pattern C: State machine with “Status” column
+Keep a `status` field like:
+- `NEW`
+- `WELCOME_SENT`
+- `REMINDER_SENT`
+- `PAID`
+- `CONFIRMED`
 
-### General
-
-- **Read before editing.** Always read a file before modifying it. Never guess at existing content.
-- **Minimal changes.** Only change what is necessary to complete the task. Avoid refactoring unrelated code.
-- **No unnecessary files.** Do not create files (including markdown docs) unless explicitly required.
-- **No emojis** unless the user explicitly asks for them.
-- **No time estimates.** Do not predict how long tasks will take.
-
-### Security
-
-- Never introduce SQL injection, XSS, command injection, or other OWASP Top 10 vulnerabilities.
-- Validate input only at system boundaries (user input, external APIs) — trust internal framework guarantees.
-- Never commit secrets, API keys, or credentials. Use environment variables.
-
-### Testing
-
-- Write or update tests whenever adding or modifying logic.
-- All tests must pass before marking a task complete.
-- Do not mark a task done if there are failing tests or unresolved errors.
-
-### Commits
-
-- Commit **only** to the branch specified in the task.
-- Never amend previous commits unless explicitly asked.
-- Stage specific files rather than `git add -A` to avoid accidentally committing secrets or binaries.
-- Pass the commit message via a heredoc to preserve formatting:
-  ```bash
-  git commit -m "$(cat <<'EOF'
-  feat: add initial project scaffold
-
-  Sets up directory structure, package.json, and base configuration.
-  EOF
-  )"
-  ```
+This prevents duplicates and makes debugging easy.
 
 ---
 
-## Environment Variables
+## Data model for donor automation (suggested)
+Store each donor record with:
 
-Document required environment variables here as they are added.
+- `donor_id` (unique)
+- `full_name`
+- `phone`
+- `email`
+- `sponsorship_type`
+- `expected_amount`
+- `expected_date`
+- `reminder_days_before` (e.g., 3)
+- `channel` (email/whatsapp/sms)
+- `status`
+- `welcome_sent_at`
+- `reminder_sent_at`
+- `paid_amount`
+- `paid_date`
+- `confirmed_sent_at`
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| *(none yet)* | — | — |
-
-Create a `.env.example` file in the repository root when environment variables are introduced.
+Where to store:
+- **Google Sheets** (simple, quick)
+- **Airtable** (nice UI)
+- **Postgres/MySQL** (best long-term)
+- **n8n Data Store** (okay for small setups)
 
 ---
 
-## CI/CD
+## Nodes you’ll use a lot
 
-No CI/CD pipeline has been configured yet. When added, document:
+### Data + logic
+- **Set**: rename fields, build clean JSON
+- **IF**: branching logic
+- **Merge**: combine streams
+- **Split in Batches**: process many rows safely
+- **Wait**: delay a workflow (works, but Cron-based reminders scale better)
+- **Code**: custom transforms (keep it minimal)
 
-- The CI provider (GitHub Actions, CircleCI, etc.)
-- What triggers a build (push, pull request, schedule)
-- Required secrets / environment variables in the CI environment
-- Steps run in the pipeline (lint → test → build → deploy)
+### Storage
+- Google Sheets
+- Airtable
+- PostgreSQL / MySQL
+- Redis (advanced)
+
+### Messaging
+- Email (SMTP / Gmail)
+- SMS (Twilio or similar)
+- WhatsApp (via approved providers like Twilio/Meta BSP)
+  - Note: WhatsApp usually requires templates for certain message types.
 
 ---
 
-## Updating This File
+## Building your donor automation (3 workflows)
 
-Keep `CLAUDE.md` current. Update it whenever:
+You want:
+1) Collect donor details
+2) Send welcome immediately
+3) Send reminder near expected date
+4) Send confirmation after payment
 
-- The technology stack or major dependencies change
-- New development commands are introduced
-- Significant architectural decisions are made
-- Environment variables are added or removed
-- CI/CD configuration changes
+Best practice: split into **3 workflows** so each is clean and reliable.
+
+---
+
+## Workflow 1: Donor intake + welcome
+
+### Goal
+When a donor submits the embedded form:
+- validate details
+- save to Sheet/DB
+- send welcome + thank you
+- mark status
+
+### Flow (ASCII)
